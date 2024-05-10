@@ -1,0 +1,139 @@
+import pandas as pd
+
+# Cargar el conjunto de datos de productos
+products_df = pd.read_csv(r'F:\amazon1millon\amazon_products.csv')
+
+# Cargar el conjunto de datos de categorías
+categories_df = pd.read_csv(r'F:\amazon1millon\amazon_categories.csv')
+
+# Limpieza de datos
+# Normalizar títulos de productos
+products_df['title'] = products_df['title'].str.replace(r'[^\w\s]', '', regex=True).str.lower()
+
+# Verificar y corregir URLs
+products_df['imgUrl'] = products_df['imgUrl'].apply(lambda x: x if pd.notnull(x) and x.startswith('http') else pd.NA)
+products_df['productURL'] = products_df['productURL'].apply(lambda x: x if pd.notnull(x) and x.startswith('http') else pd.NA)
+
+# Convertir 'stars' y 'reviews' a numéricos y manejar ceros
+products_df['stars'] = pd.to_numeric(products_df['stars'], errors='coerce').fillna(0)
+products_df['reviews'] = pd.to_numeric(products_df['reviews'], errors='coerce').fillna(0)
+
+# Convertir 'price' y 'listPrice' a numéricos y manejar ceros
+products_df['price'] = pd.to_numeric(products_df['price'], errors='coerce').replace(0, pd.NA)
+products_df['listPrice'] = pd.to_numeric(products_df['listPrice'], errors='coerce').replace(0, pd.NA)
+
+# Imputar precios faltantes con la mediana de los precios disponibles
+products_df['price'].fillna(products_df['price'].median(), inplace=True)
+products_df['listPrice'].fillna(products_df['listPrice'].median(), inplace=True)
+
+# Mapear 'category_id' con nombres reales de categoría
+# Asegúrate de que la columna 'category_id' en 'products_df' y 'id' en 'categories_df' coincidan
+merged_df = products_df.merge(categories_df, left_on='category_id', right_on='id', how='left')
+
+# Renombrar la columna 'category_name' a algo más descriptivo si lo deseas
+merged_df.rename(columns={'category_name': 'category_name_amazon'}, inplace=True)
+
+# Ahora puedes eliminar la columna 'id' ya que no es necesaria después del merge
+merged_df.drop('id', axis=1, inplace=True)
+
+# Asegurarse de que 'isBestSeller' sea booleano
+merged_df['isBestSeller'] = merged_df['isBestSeller'].astype(bool)
+
+# Guardar el DataFrame combinado y limpio
+merged_df.to_csv(r'F:\amazon1millon\cleaned_combined_data.csv', index=False)
+#codigo 1 
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Supongamos que 'merged_df' es tu DataFrame final después de la limpieza de datos
+merged_df = pd.read_csv(r'F:\amazon1millon\cleaned_combined_data.csv')
+
+# Ejemplo de gráfico de barras para mostrar la cantidad de productos por categoría
+plt.figure(figsize=(10, 6))
+merged_df['category_name_amazon'].value_counts().plot(kind='bar')
+plt.title('Cantidad de Productos por Categoría')
+plt.xlabel('Categoría')
+plt.ylabel('Cantidad de Productos')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+# Ejemplo de histograma para la distribución de precios
+plt.figure(figsize=(10, 6))
+merged_df['price'].plot(kind='hist', bins=30, edgecolor='black')
+plt.title('Distribución de Precios de Productos')
+plt.xlabel('Precio')
+plt.ylabel('Frecuencia')
+plt.show()
+
+# Ejemplo de gráfico de caja para los precios
+plt.figure(figsize=(10, 6))
+merged_df['price'].plot(kind='box')
+plt.title('Boxplot de Precios de Productos')
+plt.ylabel('Precio')
+plt.show()
+
+# Ejemplo de gráfico de dispersión para la relación entre estrellas y reseñas
+plt.figure(figsize=(10, 6))
+plt.scatter(merged_df['reviews'], merged_df['stars'], alpha=0.5)
+plt.title('Relación entre Número de Reseñas y Calificación de Estrellas')
+plt.xlabel('Número de Reseñas')
+plt.ylabel('Calificación de Estrellas')
+plt.show()
+
+# Ejemplo de gráfico circular para la proporción de productos BestSeller
+plt.figure(figsize=(8, 8))
+merged_df['isBestSeller'].value_counts().plot(kind='pie', autopct='%1.1f%%', startangle=140)
+plt.title('Proporción de Productos BestSeller')
+plt.ylabel('')
+plt.show()
+#codigo2
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Cargar el conjunto de datos
+df = pd.read_csv('F:/amazon1millon/cleaned_combined_data.csv')
+
+# Análisis de Precios
+# Suponiendo que 'price' es el precio de venta y 'listPrice' es el precio de lista
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='listPrice', y='price', data=df)
+plt.title('Comparación de Precio de Lista vs Precio de Venta')
+plt.xlabel('Precio de Lista (USD)')
+plt.ylabel('Precio de Venta (USD)')
+plt.show()
+
+# Distribución de Precios de Venta
+plt.figure(figsize=(10, 6))
+sns.histplot(df['price'], kde=True)
+plt.title('Distribución de Precios de Venta')
+plt.xlabel('Precio (USD)')
+plt.ylabel('Frecuencia')
+plt.show()
+
+# Relación entre Calificación de Estrellas y Precio de Venta
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='stars', y='price', data=df)
+plt.title('Relación entre Calificación de Estrellas y Precio de Venta')
+plt.xlabel('Calificación de Estrellas')
+plt.ylabel('Precio (USD)')
+plt.show()
+#codigo
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Cargar el conjunto de datos
+df = pd.read_csv('F:/amazon1millon/cleaned_combined_data.csv')
+
+# Seleccionar las columnas numéricas para el análisis de correlación
+# Asegúrate de reemplazar 'column1', 'column2', etc., con los nombres reales de tus columnas numéricas
+numeric_columns = df.select_dtypes(include=['float64', 'int64'])
+correlation_matrix = numeric_columns.corr()
+
+# Crear un mapa de calor de correlación
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, fmt='.2f', cmap='coolwarm', center=0)
+plt.title('Mapa de Calor de Correlación')
+plt.show()
